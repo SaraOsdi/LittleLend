@@ -4,6 +4,7 @@ const session = require('express-session');
 const LocalStrategy = require('passport-local').Strategy;
 const sqlite3 = require('sqlite3').verbose();
 
+
 const app = express();
 const PORT = 3000;
 
@@ -50,22 +51,26 @@ app.get('/admin', isAuthenticated, (req, res) => {
     res.redirect('/');
   });
 
-  
+  app.get('/', (req, res) => {
+    res.send('Hello, this is the home page!');
+  });
+
 // SQLite setup
 const db = new sqlite3.Database('mydatabase.db');
 
 db.run(`
   CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY,
-    category TEXT, -- Category of the item (baby furniture, baby clothes, etc.)
-    picture TEXT, -- URL or file path
+    category TEXT, 
+    picture TEXT, 
     name TEXT,
     brand TEXT,
     description TEXT,
     age_range TEXT,
     security_deposit_rate REAL,
-    borrow_lend_indicator INTEGER, -- 0 for lend, 1 for borrow (for example)
-    listed_date TEXT
+    borrow_lend_indicator INTEGER,
+    listed_date TEXT,
+    is_available INTEGER DEFAULT 1
   )
 `);
 
@@ -117,7 +122,7 @@ app.get('/api/items', (req, res) => {
       });
     } else {
       // User view: retrieve only available items
-      db.all('SELECT * FROM items WHERE is_available = 1', (err, rows) => {
+      db.all('SELECT * FROM items WHERE is_available = 1' , (err, rows) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -151,8 +156,8 @@ app.get('/api/items', (req, res) => {
   // Add more routes and database operations as needed
 
   app.get('/home', (req, res) => {
-    // Handle requests to the /home route
-  });
+    res.render('home'); // Render and send an HTML page
+});
 
   app.use((err, req, res, next) => {
     // Handle errors here
