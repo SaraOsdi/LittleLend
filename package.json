@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "nodemon server/server.js"
   },
@@ -20,6 +21,7 @@
     "passport-local": "^1.0.0",
     "pino": "^8.17.2",
     "pino-pretty": "^10.3.1",
+    "pocketbase": "^0.20.1",
     "sqlite3": "^5.1.6"
   }
 }
