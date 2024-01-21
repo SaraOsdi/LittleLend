@@ -380,6 +380,8 @@ app.get("/users", (req, res) => {
   });
 });
 
+
+
 app.get("/lends", (req, res) => {
   db.all("SELECT * FROM lends", (err, rows) => {
     if (err) {
@@ -389,6 +391,56 @@ app.get("/lends", (req, res) => {
     res.json({ lends: rows });
   });
 });
+
+app.get("/lends/search", (req, res) => {
+  try {
+    const searchTerm = req.query.searchTerm || '';
+    const activeLendsOnly = req.query.activeLendsOnly === 'true';
+    const overdueLendsOnly = req.query.overdueLendsOnly === 'true';
+
+    const query = `
+      SELECT lends.id,
+             lends.item_id,
+             lends.borrower_name,
+             lends.phone_number,
+             lends.security_deposit_method,
+             lends.security_deposit_amount,
+             lends.lending_date,
+             lends.returning_date,
+             lends.is_active,
+             items.name AS item_name,
+             items.brand AS item_brand
+      FROM lends
+      LEFT JOIN items ON lends.item_id = items.id
+      WHERE
+        (items.name LIKE ? OR items.brand LIKE ?)
+        ${activeLendsOnly ? 'AND lends.is_active = 1' : ''}
+        ${overdueLendsOnly ? 'AND (lends.returning_date IS NOT NULL AND lends.returning_date < date("now"))' : ''}
+    `;
+
+    // Parameters for the SQL query
+    const params = [
+      `%${searchTerm}%`,
+      `%${searchTerm}%`
+    ];
+
+    // Execute the query
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ lends: rows });
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ message: "not working" });
+  }
+});
+
+
+
+
 
 // Add more routes and database operations as needed
 
@@ -408,7 +460,8 @@ app.get("/search", (req, res) => {
     // Admin view: search all items
     const query = `
         SELECT * FROM items
-        WHERE name LIKE ? OR description LIKE ? OR brand LIKE ? OR age_range LIKE ?;
+        WHERE (name LIKE ? OR description LIKE ? OR brand LIKE ? OR age_range LIKE ?)
+        AND (age_range LIKE ? OR ? IS NULL);
       `;
     const params = [
       `%${searchTerm}%`,
@@ -429,7 +482,8 @@ app.get("/search", (req, res) => {
     const query = `
         SELECT * FROM items
         WHERE is_available = 1
-        AND (name LIKE ? OR description LIKE ? OR brand LIKE ? OR age_range LIKE ?);
+        AND (name LIKE ? OR description LIKE ? OR brand LIKE ? OR age_range LIKE ?)
+        AND (age_range LIKE ? OR ? IS NULL);
       `;
     const params = [
       `%${searchTerm}%`,
