@@ -5,9 +5,12 @@ const cookieParser = require("cookie-parser");
 const sqlite3 = require("sqlite3").verbose();
 const morgan = require("morgan");
 const bodyParser = require('body-parser');
+const cors=require("cors");
+
 
 
 const app = express();
+app.use(cors({credentials:true}));
 app.use(cookieParser());
 app.use(express.json());
 const PORT = 3000;
@@ -50,12 +53,20 @@ app.get("/", (req, res) => {
 });
 
 // SQLite setup
+// SQLite setup
 const db = new sqlite3.Database("mydatabase.db");
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY,
+    name TEXT
+  )
+`);
 
 db.run(`
   CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY,
-    category TEXT, 
+    category_id INTEGER, -- Foreign key referencing categories table
     picture TEXT, 
     name TEXT,
     brand TEXT,
@@ -64,10 +75,10 @@ db.run(`
     security_deposit_rate REAL,
     borrow_lend_indicator INTEGER,
     listed_date TEXT,
-    is_available INTEGER DEFAULT 1
+    is_available INTEGER DEFAULT 1,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
   )
 `);
-
 
 db.run(`
   CREATE TABLE IF NOT EXISTS lends (
@@ -83,21 +94,8 @@ db.run(`
   )
 `);
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS borrowers (
-    id INTEGER PRIMARY KEY,
-    borrower_name TEXT,
-    phone_number TEXT,
-    is_active INTEGER -- 0 for inactive, 1 for active (for example)
-  )
-`);
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS borrowers_items (
-    borrower_id INTEGER, -- Foreign key referencing borrowers table
-    item_id INTEGER -- Foreign key referencing items table
-  )
-`);
+
 
 // create items
 
@@ -337,15 +335,53 @@ app.delete('/api/lends/:id', (req, res) => {
 });
 
 
-// Define routes and middleware here, use GET /api/items to get the data
+// Define routes and middleware here, use GET /items to get the data
 
-app.get("/api/items", (req, res) => {
+// app.get("/items", (req, res) => {
+//   try {
+//     const token = req.headers.token;
+//     console.log(token);
+//     if (token === process.env.ADMIN_COOKIE) {
+//       // Admin view: retrieve all items
+//       db.all("SELECT * FROM items", (err, rows) => {
+//         if (err) {
+//           res.status(500).json({ error: err.message });
+//           return;
+//         }
+//         console.log("admin is here");
+//         res.json({ items: rows });
+//       });
+//     } else {
+//       // User view: retrieve only available items
+//       db.all("SELECT * FROM items WHERE is_available = 1", (err, rows) => {
+//         if (err) {
+//           res.status(500).json({ error: err.message });
+//           return;
+//         }
+//         console.log("admin is not here");
+//         res.json({ items: rows });
+//       });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(400).json({ message: "not working" });
+//   }
+// });
+
+app.get("/items", (req, res) => {
   try {
     const token = req.headers.token;
+    const categoryId = req.query.categoryId; // Get the category ID from the request query
     console.log(token);
     if (token === process.env.ADMIN_COOKIE) {
-      // Admin view: retrieve all items
-      db.all("SELECT * FROM items", (err, rows) => {
+      // Admin view: retrieve all items or items under a specific category
+      let sqlQuery = "SELECT * FROM items";
+      const params = [];
+      if (categoryId) {
+        sqlQuery += " WHERE category_id = ?";
+        params.push(categoryId);
+      }
+      db.all(sqlQuery, params, (err, rows) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -354,8 +390,14 @@ app.get("/api/items", (req, res) => {
         res.json({ items: rows });
       });
     } else {
-      // User view: retrieve only available items
-      db.all("SELECT * FROM items WHERE is_available = 1", (err, rows) => {
+      // User view: retrieve only available items or items under a specific category
+      let sqlQuery = "SELECT * FROM items WHERE is_available = 1";
+      const params = [];
+      if (categoryId) {
+        sqlQuery += " AND category_id = ?";
+        params.push(categoryId);
+      }
+      db.all(sqlQuery, params, (err, rows) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -370,15 +412,42 @@ app.get("/api/items", (req, res) => {
   }
 });
 
-app.get("/users", (req, res) => {
-  db.all("SELECT * FROM users", (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({ items: rows });
-  });
-});
+
+
+
+// app.get("/items/:category", (req, res) => {
+//   try {
+//     const token = req.headers.token;
+//     const category = req.params.category; // Get the category from the request parameters
+//     console.log(token);
+
+//     if (token === process.env.ADMIN_COOKIE) {
+//       // Admin view: retrieve all items in the specified category
+//       db.all("SELECT * FROM items WHERE category = ?", [category], (err, rows) => {
+//         if (err) {
+//           res.status(500).json({ error: err.message });
+//           return;
+//         }
+//         console.log("admin is here");
+//         res.json({ items: rows });
+//       });
+//     } else {
+//       // User view: retrieve only available items in the specified category
+//       db.all("SELECT * FROM items WHERE category = ? AND is_available = 1", [category], (err, rows) => {
+//         if (err) {
+//           res.status(500).json({ error: err.message });
+//           return;
+//         }
+//         console.log("admin is not here");
+//         res.json({ items: rows });
+//       });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(400).json({ message: "not working" });
+//   }
+// });
+
 
 
 
@@ -442,17 +511,13 @@ app.get("/lends/search", (req, res) => {
 
 
 
-// Add more routes and database operations as needed
 
-app.get("/home", (req, res) => {
-  res.render("home"); // Render and send an HTML page
-});
 
 app.use((err, req, res, next) => {
   // Handle errors here
 });
 
-app.get("/search", (req, res) => {
+app.get("/items/search", (req, res) => {
   const { searchTerm } = req.query;
 
   // Check if the request is coming from an authenticated admin
