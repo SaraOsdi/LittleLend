@@ -17,6 +17,8 @@ const PORT = 3000;
 
 app.use(morgan("dev"));
 
+
+
 app.get("/login", (req, res) => {
   res.send("Login page"); // Implement your login page here
 });
@@ -94,7 +96,16 @@ db.run(`
   )
 `);
 
+//get categories
 
+app.get('/categories', (req, res) => {
+  db.all('SELECT * FROM categories', (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+}); 
 
 
 // create items
@@ -518,10 +529,14 @@ app.use((err, req, res, next) => {
 });
 
 app.get("/items/search", (req, res) => {
-  const { searchTerm } = req.query;
+  
 
   // Check if the request is coming from an authenticated admin
-  if (req.isAuthenticated() && req.user.isAdmin) {
+  try {
+    const token = req.headers.token;
+    const { searchTerm } = req.query;
+    console.log(token);
+    if (token === process.env.ADMIN_COOKIE) {
     // Admin view: search all items
     const query = `
         SELECT * FROM items
@@ -563,9 +578,15 @@ app.get("/items/search", (req, res) => {
         return;
       }
       res.json({ items: rows });
-    });
-  }
+    
 });
+}
+} catch (error) {
+  console.log(error);
+  res.status(400).json({ message: "not working" });
+}
+});
+
 
 // Start the server
 app.listen(PORT, () => {
