@@ -4,26 +4,28 @@ const db = new sqlite3.Database('./db/mydatabase.db');
 async function createItem(req, res){
     const newProduct = req.body;
   
-    const insertQuery = `
-      INSERT INTO items (
-        id, category, picture, name, brand, description, age_range,
-        security_deposit_rate, borrow_lend_indicator, listed_date, is_available
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
   
-    const values = [
-      newProduct.id,
-      newProduct.category,
-      newProduct.picture,
-      newProduct.name,
-      newProduct.brand,
-      newProduct.description,
-      newProduct.age_range,
-      newProduct.security_deposit_rate,
-      newProduct.borrow_lend_indicator,
-      newProduct.listed_date,
-      newProduct.is_available
-    ];
+  // Prepare a parameterized query to insert the new item
+  const insertQuery = `
+    INSERT INTO items (
+      id, category_id, picture, name, brand, description, age_range,
+      security_deposit_rate, borrow_lend_indicator, listed_date, is_available
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  const values = [
+    newProduct.id,
+    newProduct.category_id,
+    newProduct.picture,
+    newProduct.name,
+    newProduct.brand,
+    newProduct.description,
+    newProduct.age_range,
+    newProduct.security_deposit_rate,
+    newProduct.borrow_lend_indicator,
+    newProduct.listed_date,
+    newProduct.is_available
+  ];
   
     db.run(insertQuery, values, (err) => {
       if (err) {
@@ -35,26 +37,27 @@ async function createItem(req, res){
       res.status(201).json({ message: 'Item created successfully', items: newProduct });
     });
   
-  }
+}
 
-  
 
-  
-
-  async function updateItem(req, res){
+async function updateItem(req, res){
   const updatedProduct = req.body;
   const productId = req.params.id;
+  
+  const db = new sqlite3.Database('./db/mydatabase.db');
 
+  // set a parameterized query to update the item with the provided ID
   const updateQuery = `
     UPDATE items
-    SET category = ?, picture = ?, name = ?, brand = ?, description = ?,
+    SET category_id = ?, picture = ?, name = ?, brand = ?, description = ?,
         age_range = ?, security_deposit_rate = ?, borrow_lend_indicator = ?,
         listed_date = ?, is_available = ?
     WHERE id = ?
   `;
 
+  // runnig the query with the updated values and the provided ID
   db.run(updateQuery, [
-    updatedProduct.category,
+    updatedProduct.category_id,
     updatedProduct.picture,
     updatedProduct.name,
     updatedProduct.brand,
@@ -74,6 +77,7 @@ async function createItem(req, res){
     }
 
   });
+  db.close();
 }
 
 async function deleteItem(req, res){

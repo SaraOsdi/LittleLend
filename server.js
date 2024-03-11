@@ -9,10 +9,12 @@ const cors=require("cors");
 
 
 
+
 const app = express();
 app.use(cors({credentials:true}));
 app.use(cookieParser());
 app.use(express.json());
+app.use(bodyParser.json());
 const PORT = 3000;
 
 app.use(morgan("dev"));

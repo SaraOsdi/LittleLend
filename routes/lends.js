@@ -7,8 +7,8 @@ const { getLends } = require("../controllers/lends.js")
 const { searchLends } = require("../controllers/lends.js")
 
 router.post("/", createLend)
-router.put("/", editLend)
-router.delete("/", deleteLend)
+router.put("/:id", editLend)
+router.delete("/:id", deleteLend)
 router.get("/", getLends)
 router.get("/search", searchLends) // Use a different path for search
 

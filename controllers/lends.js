@@ -41,7 +41,7 @@ async function editLend(req, res){
     const updatedLend = req.body;
     const lendId = req.params.id;
   
-    const db = new sqlite3.Database('mydatabase.db');
+
   
     const updateQuery = `
       UPDATE lends
