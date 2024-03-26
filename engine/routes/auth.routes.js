@@ -56,7 +56,7 @@ router.post("/reset", async (req, res) => {
     if (user) {
       const hashedPassword = await bcrypt.hash(password, 10);
       user.password = hashedPassword;
-      User.findByIdAndUpdate({ userId }, user, { new: true });
+      const result = await User.findByIdAndUpdate(user._id, user, { new: true });
       res.json(true);
     } else {
       res.status(401).send("userId is incorrect");
