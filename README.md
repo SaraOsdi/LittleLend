@@ -1,5 +1,9 @@
 # LittleLend Backend Project
 
+This app is for social services, especially to help lend out baby items
+easily and efficiently. It was created because a person who runs a
+lending service found it too hard to use existing apps for this job.
+
 ### Installation
 
 ```
